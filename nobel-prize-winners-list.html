@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nobel Prize Winners List</title>
+  <!-- Add Bootstrap CSS link -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: aqua;
+      margin: 20px;
+    }
+
+    .container {
+      background-color: rgb(134, 223, 223);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    h1,
+    h2 {
+      color: #343a40;
+    }
+
+    #filterContainer {
+      margin-bottom: 20px;
+    }
+
+    #prizesList {
+      padding: 0;
+    }
+
+    .prizeItem {
+      border: 1px solid #ddd;
+      margin-bottom: 15px;
+      padding: 15px;
+      border-radius: 8px;
+      transition: box-shadow 0.3s;
+    }
+
+    .prizeItem:hover {
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+
+    #laureatesList {
+      list-style: none;
+      padding: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6">
+        <div id="filterContainer">
+          <label for="year">Select Year:</label>
+          <select id="year" class="form-control">
+            <option value="">All Years</option>
+          </select>
+
+          <label for="category">Select Category:</label>
+          <select id="category" class="form-control">
+            <option value="">All Categories</option>
+          </select>
+
+          <button onclick="filterPrizes()" class="btn btn-primary mt-3">Filter</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <h1 class="mb-4">Nobel Prize Winners</h1>
+        <ul id="prizesList" class="list-group"></ul>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <h2 class="mt-4">Multiple-Time Nobel Prize Winners</h2>
+        <ul id="laureatesList" class="list-group"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Bootstrap JS and Popper.js -->
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+  <script>
+    // Fetch prizes from the API
+    async function fetchPrizes() {
+      const response = await fetch('http://api.nobelprize.org/v1/prize.json');
+      const data = await response.json();
+      return data.prizes || [];
+    }
+
+    // Populate dropdowns with years and categories
+    async function populateDropdowns() {
+      const prizes = await fetchPrizes();
+      const years = Array.from(new Set(prizes.map(prize => prize.year))).sort();
+      const categories = Array.from(new Set(prizes.map(prize => prize.category)));
+
+      const yearDropdown = document.getElementById('year');
+      const categoryDropdown = document.getElementById('category');
+
+      years.forEach(year => {
+        const option = document.createElement('option');
+        option.value = year;
+        option.text = year;
+        yearDropdown.add(option);
+      });
+
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.text = category;
+        categoryDropdown.add(option);
+      });
+    }
+
+    // Display prize winners in the list
+    function displayPrizes(prizes) {
+      const prizesList = document.getElementById('prizesList');
+      prizesList.innerHTML = '';
+
+      prizes.forEach(prize => {
+        const listItem = document.createElement('li');
+        listItem.className = 'prizeItem';
+        listItem.innerHTML = `
+          <strong>${prize.year}</strong> - ${prize.category}<br>
+          <em>${prize.motivation}</em><br>
+          Winners:
+          <ul>
+            ${prize.laureates.map(laureate => `<li>${laureate.firstname} ${laureate.surname}</li>`).join('')}
+          </ul>
+        `;
+        prizesList.appendChild(listItem);
+      });
+    }
+
+    // Filter prizes based on selected year and category
+    function filterPrizes() {
+      const selectedYear = document.getElementById('year').value;
+      const selectedCategory = document.getElementById('category').value;
+
+      const filteredPrizes = prizes.filter(prize =>
+        (!selectedYear || prize.year == selectedYear) &&
+        (!selectedCategory || prize.category == selectedCategory)
+      );
+
+      displayPrizes(filteredPrizes);
+    }
+
+    // Display information about multiple-time Nobel Prize winners
+    function displayMultipleTimeWinners() {
+      const laureatesList = document.getElementById('laureatesList');
+      laureatesList.innerHTML = '';
+
+      const multipleTimeWinners = {};
+      prizes.forEach(prize => {
+        prize.laureates.forEach(laureate => {
+          const key = `${laureate.firstname} ${laureate.surname}`;
+          multipleTimeWinners[key] = multipleTimeWinners[key] || 0;
+          multipleTimeWinners[key]++;
+        });
+      });
+
+      for (const [name, count] of Object.entries(multipleTimeWinners)) {
+        if (count > 1) {
+          const listItem = document.createElement('li');
+          listItem.textContent = `${name} - ${count} times`;
+          laureatesList.appendChild(listItem);
+        }
+      }
+    }
+
+    // Initialize the app
+    async function initializeApp() {
+      await populateDropdowns();
+      prizes = await fetchPrizes();
+      displayPrizes(prizes);
+      displayMultipleTimeWinners();
+    }
+
+    // Run the app
+    initializeApp();
+  </script>
+
+</body>
+
+</html>
